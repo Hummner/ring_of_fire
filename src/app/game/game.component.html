@@ -18,8 +18,8 @@
             alt="">
 
         <!-- Animation -->
-        <img (click)="takeCard()" *ngIf="pickCardAnimation" class="pick-card" style="right: 25px;"
-            src="assets/img/cards/{{ currentCard }}.png" alt="">
+        <img (click)="takeCard()" *ngIf="game.pickCardAnimation" class="pick-card" style="right: 25px;"
+            src="assets/img/cards/{{ game.currentCard }}.png" alt="">
 
 
 
@@ -30,4 +30,4 @@
     <mat-icon>add</mat-icon>
 </button>
 
-<app-game-info [card]="currentCard" class="game-info"></app-game-info>
+<app-game-info [card]="game.currentCard" class="game-info"></app-game-info>

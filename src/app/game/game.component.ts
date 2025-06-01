@@ -11,6 +11,13 @@ import { Dialog } from '@angular/cdk/dialog';
 import { DialogAddPlayerComponent } from '../dialog-add-player/dialog-add-player.component';
 import { GameInfoComponent } from "../game-info/game-info.component";
 import { MatCardModule } from '@angular/material/card';
+import { inject } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
+
+import { Firestore, collection, collectionData, onSnapshot, addDoc, doc, updateDoc } from '@angular/fire/firestore';
+import { ActivatedRoute } from '@angular/router';
+
+
 
 
 @Component({
@@ -21,23 +28,64 @@ import { MatCardModule } from '@angular/material/card';
   styleUrls: ['./game.component.scss']
 })
 export class GameComponent implements OnInit {
-  currentCard: any = '';
-  pickCardAnimation = false;
 
+
+  firestore!: Firestore;
+  gamesArray: [] = [];
+  gameURL!: string;
   game!: Game;
+  unsubGame: any;
 
 
-  constructor(public dialog: MatDialog) { };
+  constructor(private route: ActivatedRoute, public dialog: MatDialog) {
+    this.firestore = inject(Firestore);
+  };
 
   ngOnInit(): void {
     this.newGame();
-    console.log(this.dialog);
+    this.route.params.subscribe((params) => { this.gameURL = params['id'] })
+    this.unsubGame = this.subgame();
+
+
+
+
   }
+
+  getGameRef() {
+    return doc(collection(this.firestore, "games"), this.gameURL);
+  }
+
 
   newGame() {
     this.game = new Game();
-    console.log(this.game);
+    // console.log(this.game);
 
+  }
+
+
+
+  subgame() {
+    return onSnapshot(this.getGameRef(), (list) => {
+      let newGame = list.data();
+      if (newGame) {
+
+        this.game.currentPlayer = newGame['currentPlayer'];
+        this.game.stack = newGame['stack'];
+        this.game.playedCards = newGame['playedCards'];
+        this.game.players = newGame['players'];
+        this.game.currentCard = newGame["currentCard"],
+          this.game.pickCardAnimation = newGame["pickCardAnimation"]
+
+      }
+
+
+
+
+    })
+  }
+
+  saveGame() {
+    updateDoc(this.getGameRef(), this.game.toJson())
   }
 
 
@@ -49,25 +97,23 @@ export class GameComponent implements OnInit {
       if (name && name.length > 0) {
         this.game.players.push(name);
       }
+      this.saveGame();
 
     });
   }
 
   takeCard() {
-    if (!this.pickCardAnimation) {
-      this.currentCard = this.game.stack.pop();
-      this.pickCardAnimation = true;
-
-      console.log("Cards: ", this.game.playedCards);
-
-      console.log("New Card: ", this.currentCard);
+    if (!this.game.pickCardAnimation) {
+      this.game.currentCard = this.game.stack.pop();
+      this.game.pickCardAnimation = true;
 
       this.game.currentPlayer++;
       this.game.currentPlayer = this.game.currentPlayer % this.game.players.length;
-
+      this.saveGame();
       setTimeout(() => {
-        this.pickCardAnimation = false;
-        this.game.playedCards.push(this.currentCard);
+        this.game.pickCardAnimation = false;
+        this.game.playedCards.push(this.game.currentCard);
+        this.saveGame();
       }, 1000);
     }
   }
